@@ -1405,7 +1405,7 @@ const staticSegmentValue = 10;
 const splatPenalty = -2;
 const isSplat = (s: string) => s === "*";
 
-function computeScore(path: string, index: boolean | undefined): number {
+export function computeScore(path: string, index: boolean | undefined): number {
   let segments = path.split("/");
   let initialScore = segments.length;
   if (segments.some(isSplat)) {

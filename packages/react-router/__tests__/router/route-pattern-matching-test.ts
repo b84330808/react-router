@@ -209,6 +209,35 @@ describe("unstable route-pattern matching", () => {
     expect(matches?.[1].route.path).toBe("archive/:year?/:month?");
   });
 
+  it("matches optional segments omitted independently", () => {
+    let router = createMemoryRouter(
+      [
+        { path: "settings/advanced?/beta?", id: "settings" },
+        { path: "users/edit?/:id?", id: "users" },
+        { path: "shop/:category?/sale?", id: "shop" },
+      ],
+      {
+        future: routePatternFuture,
+        initialEntries: ["/settings/beta"],
+      },
+    );
+
+    expect(router.state.matches.map((m) => m.route.id)).toEqual(["settings"]);
+    expect(router.state.matches[0].params).toEqual({});
+
+    let matches = router.match("/users/1");
+    expect(matches?.map((m) => m.route.id)).toEqual(["users"]);
+    expect(matches?.[0].params).toEqual({ id: "1" });
+
+    matches = router.match("/shop/sale");
+    expect(matches?.map((m) => m.route.id)).toEqual(["shop"]);
+    expect(matches?.[0].params).toEqual({});
+
+    matches = router.match("/shop/shoes/sale");
+    expect(matches?.map((m) => m.route.id)).toEqual(["shop"]);
+    expect(matches?.[0].params).toEqual({ category: "shoes" });
+  });
+
   it("matches leading optional segments", () => {
     let router = createMemoryRouter(
       [

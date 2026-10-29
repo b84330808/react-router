@@ -1,0 +1,1 @@
+Fix `future.unstable_routePatternMatching` so optional segments can be omitted independently like with the default matcher (e.g. `users/edit?/:id?` matches `/users/1`), and ambiguous optional segments get the same params as with the default matcher

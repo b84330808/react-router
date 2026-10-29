@@ -12,6 +12,7 @@ import type {
   RouteObject,
 } from "./utils";
 import {
+  computeScore,
   decodePath,
   explodeOptionalSegments,
   joinPaths,
@@ -275,19 +276,22 @@ function convertReactRouterPathToRoutePattern(path: string): string {
     }
 
     if (optionalRun.length > 0) {
-      let nested = optionalRun.reduceRight(
-        (child, segment) => `/${segment}${child ? `(${child})` : ""}`,
-        "",
-      );
+      // Each optional segment can be omitted on its own (`a?/b?` matches `/b`),
+      // so give every segment its own group instead of nesting them
+      let groups = optionalRun.map((segment) => `(/${segment})`);
 
       // Route pattern pathnames don't start with a `/`, so a leading optional
-      // run moves its `/` to the end (`:lang?/about` -> `(:lang/)about`)
+      // run moves its `/`s to the end (`:lang?/about` -> `(:lang/)about`)
       if (pattern === "") {
-        nested = nested.slice(1) + (i < segments.length ? "/" : "");
+        groups = optionalRun.map((segment, j) =>
+          j < optionalRun.length - 1 || i < segments.length
+            ? `(${segment}/)`
+            : `(${segment})`,
+        );
         separator = "";
       }
 
-      pattern += `(${nested})`;
+      pattern += groups.join("");
       continue;
     }
 
@@ -411,7 +415,13 @@ function matchRoutePatternBranch<
       ? pathname
       : pathname.slice(matchedPathname.length) || "/";
 
-  for (let relativePath of explodeOptionalSegments(meta.relativePath)) {
+  // Try the exploded paths in the order the default matcher ranks them, so an
+  // ambiguous path gets the same params (`:a?/b?` matches `/b` without `a`)
+  let relativePaths = explodeOptionalSegments(meta.relativePath).sort(
+    (a, b) =>
+      computeScore(b, meta.route.index) - computeScore(a, meta.route.index),
+  );
+  for (let relativePath of relativePaths) {
     let pattern = {
       path: relativePath,
       caseSensitive: false,
